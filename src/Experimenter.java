@@ -1,12 +1,9 @@
-import libsvm.svm;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.functions.LibSVM;
 import weka.classifiers.trees.J48;
 import weka.core.Instances;
 import weka.filters.Filter;
 import weka.filters.supervised.instance.Resample;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -27,7 +24,7 @@ public class Experimenter {
 
         Instances [] dataArray = readInstance();
 
-        /*for (int i = 0; i < dataArray.length; i++) {
+        for (int i = 0; i < dataArray.length; i++) {
             trainingData = resampling(dataArray[i], 100);
             for (int j = 0; j < countOfSampling; j++) {
                 model = j48Classification(trainingData);
@@ -43,7 +40,7 @@ public class Experimenter {
 
                 trainingData = resampling(trainingData, 50);
             }
-        }*/
+        }
 
         model = j48Classification(dataArray[1]);
         evaluation = new Evaluation(dataArray[1]);
@@ -83,13 +80,6 @@ public class Experimenter {
         String[] options = weka.core.Utils.splitOptions("-C 0.25 -M 2");
         model.setOptions(options);
 
-        /*LibSVM svm = new LibSVM();
-        svm.buildClassifier(trainSet);*/
-
-        /*model.setConfidenceFactor((float)0.25);
-        model.setMinNumObj(2);
-        model.setNumFolds(3);*/
-//salam
         model.buildClassifier(trainSet);
         return model;
     }
