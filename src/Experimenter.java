@@ -12,32 +12,37 @@ import weka.filters.Filter;
 import weka.filters.supervised.instance.Resample;
 import java.io.*;
 import java.util.Arrays;
+import java.util.Random;
 
 public class Experimenter {
     static int numberOfDataSets = 10;
     //name of Experiment: tcas, Scan, ...
     static String experimentName = "tcas";
+    static int countOfSampling = 6;
 
     public static void main(String[] args) throws Exception {
+        experimentMode1();
+    }
+
+    public static void experimentMode1() throws Exception {
         /*
          * Bayad har dataset ba dataset ham name khodesh be surate crossValidation Evaluate beshe va age ham nam
          * nabashan, bayad modelEvaluation anjam bedim. baraye mesal data[1] ba data[1] bayad crossValidation anjam bede
          * va ba data[2] bayad modelValidation anjam bede.
          */
 
-        int countOfSampling = 6;
         Instances trainingData;
         J48 j48Model;
         //LibSVM svmModel;
         //Evaluation svmEvaluation;
         Evaluation j48Evaluation;
+        double bestRootMeanSquaredError = Double.MAX_VALUE;
 
         ExperimentalInstances data = readInstance();
 
-        double[][] rootMeanSquaredErrorResults = new double[countOfSampling][data.getTrainSets().length];
-        double[][][] rootMeanSquaredErrorResultsAll = new double[data.getTrainSets().length][countOfSampling][data.getTestSets().length];
-        double[][] failFMeasureResults = new double[countOfSampling][data.getTrainSets().length];
-        double[][] passFMeasureResults = new double[countOfSampling][data.getTrainSets().length];
+        double[][][] rootMeanSquaredErrorResults = new double[data.getTrainSets().length][countOfSampling][data.getTestSets().length];
+        double[][][] failFMeasureResults = new double[data.getTrainSets().length][countOfSampling][data.getTrainSets().length];
+        double[][][] passFMeasureResults = new double[data.getTrainSets().length][countOfSampling][data.getTrainSets().length];
 
         for (int i = 0; i < data.getTrainSets().length; i++) {
             trainingData = resampling(data.getTrainSet(i), 100);
@@ -53,28 +58,75 @@ public class Experimenter {
                     j48Evaluation.evaluateModel(j48Model, data.getTestSet(k));
                     //svmEvaluation.evaluateModel(svmModel, dataArray[k]);
 
-                    //crossValidation Mode for section 1
-                    /*j48Evaluation.crossValidateModel(j48Model, trainingData, 10, new Random(1));
-                    //svmEvaluation.crossValidateModel(svmModel, trainingData, 10, new Random(1));*/
-
-                    failFMeasureResults[j][k] = j48Evaluation.fMeasure(trainingData.classAttribute().indexOfValue("Fail"));
-                    passFMeasureResults[j][k] = j48Evaluation.fMeasure(trainingData.classAttribute().indexOfValue("Pass"));
-                    rootMeanSquaredErrorResults[j][k] = j48Evaluation.rootMeanSquaredError();
-                    rootMeanSquaredErrorResultsAll[i][j][k] = j48Evaluation.rootMeanSquaredError();
+                    /*failFMeasureResults[i][j][k] = j48Evaluation.fMeasure(trainingData.classAttribute().indexOfValue("Fail"));
+                    passFMeasureResults[i][j][k] = j48Evaluation.fMeasure(trainingData.classAttribute().indexOfValue("Pass"));*/
+                    rootMeanSquaredErrorResults[i][j][k] = j48Evaluation.rootMeanSquaredError();
 
                     //makeOutputResultFile(j48Evaluation, "j48", trainingData.numInstances(), (i + 1) * 10, (k + 1) * 10);
                     //makeOutputResultFile(svmEvaluation, "svm", trainingData.numInstances(), (i + 1) * 10, (k + 1) * 10);
                 }
                 trainingData = resampling(trainingData, 50);
             }
-            //createChart(rootMeanSquaredErrorResults, (i + 1) * 10, "j48", "Root Mean Squared Error");
+            //createChart(rootMeanSquaredErrorResults[i], (i + 1) * 10, "j48", "Root Mean Squared Error");
         }
-        createChart(createAverageChartDatasets(firstAxisMain(rootMeanSquaredErrorResultsAll), trainProportionNames(data.getTrainSets().length))
+        createChart(createAverageChartDatasets(firstAxisMain(rootMeanSquaredErrorResults), trainProportionNames(data.getTrainSets().length))
                 , "Root Mean Squared Error", "TrainingSet Proportion");
-        createChart(createAverageChartDatasets(secondAxisMain(rootMeanSquaredErrorResultsAll), datasetSizeNames(countOfSampling))
+        createChart(createAverageChartDatasets(secondAxisMain(rootMeanSquaredErrorResults), datasetSizeNames(countOfSampling))
                 , "Root Mean Squared Error", "Dataset Count");
-        createChart(createAverageChartDatasets(thirdAxisMain(rootMeanSquaredErrorResultsAll), testProportionNames(data.getTestSets().length))
+        createChart(createAverageChartDatasets(thirdAxisMain(rootMeanSquaredErrorResults), testProportionNames(data.getTestSets().length))
                 , "Root Mean Squared Error", "TestingSet Proportion");
+    }
+    public static void experimentMode2() throws Exception {
+        /*
+         * Bayad har dataset ba dataset ham name khodesh be surate crossValidation Evaluate beshe va age ham nam
+         * nabashan, bayad modelEvaluation anjam bedim. baraye mesal data[1] ba data[1] bayad crossValidation anjam bede
+         * va ba data[2] bayad modelValidation anjam bede.
+         */
+
+        Instances trainingData;
+        J48 j48Model;
+        //LibSVM svmModel;
+        //Evaluation svmEvaluation;
+        Evaluation j48Evaluation;
+        int iIndex = 0;
+        int jIndex = 0;
+        double bestRootMeanSquaredError = Double.MAX_VALUE;
+
+        ExperimentalInstances data = readInstance();
+
+        double[][] rootMeanSquaredErrorResults = new double[data.getTrainSets().length][countOfSampling];
+        double[][] failFMeasureResults = new double[data.getTrainSets().length][countOfSampling];
+        double[][] passFMeasureResults = new double[data.getTrainSets().length][countOfSampling];
+
+        for (int i = 0; i < data.getTrainSets().length; i++) {
+            trainingData = resampling(data.getTrainSet(i), 100);
+            for (int j = 0; j < countOfSampling; j++) {
+                j48Model = j48Classification(trainingData);
+                //svmModel = libSVMClassification(trainingData);
+
+                j48Evaluation = new Evaluation(trainingData);
+
+                //crossValidation Mode for section 1
+                j48Evaluation.crossValidateModel(j48Model, trainingData, 10, new Random(1));
+                //svmEvaluation.crossValidateModel(svmModel, trainingData, 10, new Random(1));
+
+                failFMeasureResults[i][j] = j48Evaluation.fMeasure(trainingData.classAttribute().indexOfValue("Fail"));
+                passFMeasureResults[i][j] = j48Evaluation.fMeasure(trainingData.classAttribute().indexOfValue("Pass"));
+                rootMeanSquaredErrorResults[i][j] = j48Evaluation.rootMeanSquaredError();
+                if (bestRootMeanSquaredError > j48Evaluation.rootMeanSquaredError()) {
+                    bestRootMeanSquaredError = j48Evaluation.rootMeanSquaredError();
+                    iIndex = i;
+                    jIndex = j;
+                }
+
+                trainingData = resampling(trainingData, 50);
+            }
+            //createChart(rootMeanSquaredErrorResults[i], (i + 1) * 10, "j48", "Root Mean Squared Error");
+        }
+        System.out.println("train " + trainProportionNames(data.getTrainSets().length)[iIndex] + " size " + datasetSizeNames(countOfSampling)[jIndex]);
+        System.out.println("Fail " + failFMeasureResults[iIndex][jIndex]);
+        System.out.println("Pass " + passFMeasureResults[iIndex][jIndex]);
+        System.out.println("Error " + rootMeanSquaredErrorResults[iIndex][jIndex]);
     }
 
     public static void makeOutputResultFile(Evaluation evaluation, String name, int numInstances, int trainProportion, int testProportion) throws Exception {
